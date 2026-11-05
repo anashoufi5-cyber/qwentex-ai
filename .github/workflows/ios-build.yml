@@ -9,7 +9,7 @@ permissions:
 jobs:
   build:
     runs-on: macos-latest
-    timeout-minutes: 45
+    timeout-minutes: 10
 
     steps:
       - name: Checkout Qwentex
@@ -24,7 +24,7 @@ jobs:
           test -f Qwentex/Info.plist
           echo "Project files are present."
 
-      - name: Show Xcode version and schemes
+      - name: Show Xcode version and schemes (fail fast)
         run: |
           xcodebuild -version
           xcodebuild -list -project Qwentex.xcodeproj
