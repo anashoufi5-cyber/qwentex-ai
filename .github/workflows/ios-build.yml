@@ -1,0 +1,39 @@
+
+name: Build Qwentex iPhone IPA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Qwentex
+        uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Build Qwentex
+        run: |
+          xcodebuild \
+            -project Qwentex.xcodeproj \
+            -scheme Qwentex \
+            -sdk iphoneos \
+            -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Package unsigned IPA
+        run: |
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/Qwentex.app Payload/
+          zip -r Qwentex-unsigned.ipa Payload
+
+      - name: Upload Qwentex IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Qwentex-unsigned-IPA
+          path: Qwentex-unsigned.ipa
