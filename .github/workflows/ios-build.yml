@@ -1,22 +1,37 @@
-
 name: Build Qwentex iPhone IPA
 
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: macos-latest
+    timeout-minutes: 45
 
     steps:
       - name: Checkout Qwentex
         uses: actions/checkout@v4
 
-      - name: Show Xcode version
-        run: xcodebuild -version
-
-      - name: Build Qwentex
+      - name: Verify project files
         run: |
+          test -f Qwentex.xcodeproj/project.pbxproj
+          test -f Qwentex/QwentexApp.swift
+          test -f Qwentex/ChatStore.swift
+          test -f Qwentex/ChatView.swift
+          test -f Qwentex/Info.plist
+          echo "Project files are present."
+
+      - name: Show Xcode version and schemes
+        run: |
+          xcodebuild -version
+          xcodebuild -list -project Qwentex.xcodeproj
+
+      - name: Build Qwentex (save full log)
+        run: |
+          set -o pipefail
           xcodebuild \
             -project Qwentex.xcodeproj \
             -scheme Qwentex \
@@ -24,7 +39,7 @@ jobs:
             -configuration Release \
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
-            build
+            build 2>&1 | tee xcodebuild.log
 
       - name: Package unsigned IPA
         run: |
@@ -32,8 +47,19 @@ jobs:
           cp -R build/Build/Products/Release-iphoneos/Qwentex.app Payload/
           zip -r Qwentex-unsigned.ipa Payload
 
-      - name: Upload Qwentex IPA
+      - name: Upload IPA
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: Qwentex-unsigned-IPA
           path: Qwentex-unsigned.ipa
+
+      - name: Upload build log if build fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Qwentex-build-diagnostics
+          path: |
+            xcodebuild.log
+            build
+          if-no-files-found: ignore
